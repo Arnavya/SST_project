@@ -1,59 +1,72 @@
 const express = require("express");
 const User = require("../models/userModel");
-const bcrypt = require("bcrypt");
 
 const router = express.Router();
+const bcrypt = require('bcrypt');
 
 router.post("/register", async (req, res) => {
-  try {
-    const userExists = await User.findOne({ email: req.body.email });
+    try {
+        
+        // const newUser = await User.create({
+        //     name: req.body.name,
+        //     email: req.body.email,
+        //     password: req.body.password
+        // });
+        const userExists = await User.findOne({email: req.body.email});
+        // if (userExists){
+        //     res.send({
+        //         success: false,
+        //         message: "User already exists"
+        //     })
+        // }
+        // const newUser = new User(req.body);
+        // await newUser.save();
+        // return res.status(201).json(newUser);
 
-    if (userExists) {
-      res.send({
-        success: false,
-        message: "User Already Exists",
-      });
+        // Password Security
+        // Generate a salt
+        const salt = await bcrypt.genSalt(10);
+        // Password hashing using bcrypt
+        const hashedPassword = await bcrypt.hash(req.body.password, salt);
+        req.body.password = hashedPassword;
+        const newUser = new User(req.body);
+        await newUser.save();
+        return res.status(201).json(newUser);
+
+    } catch (err) {
+        res.json(err);
     }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(req.body.password, salt);
-    req.body.password = hashedPassword;
-
-    const newUser = new User(req.body);
-    await newUser.save();
-
-    res.status(201).json("User Created");
-  } catch (error) {
-    res.json(error);
-  }
 });
 
 router.post("/login", async (req, res) => {
-    const user = await User.findOne({email : req.body.email})
-
-    if(!user){
+  // Check if the email is registered
+  // Check if the password matches
+  
+  // Check if the email exixts in the database 
+  try {
+    const user = await User.findOne({email: req.body.email});
+    if (!user){
         res.send({
-            success : false,
-            message : 'User Does not exist , please register'
+            success: false,
+            message: "User does not exist, please register."
         })
     }
-
-
-    const validPassword = await bcrypt.compare(req.body.password ,user.password )
-
-    if(!validPassword){
+    const validPassword = await bcrypt.compare(req.body.password, user.password);
+    if (!validPassword){
         return res.send({
-            success : false,
-            message :"Invalid Password"
+            success: false,
+            message: "Invalid Password"
         })
     }
-
     res.send({
-        success : true,
-        message :"user Logged in"
+        success: true,
+        message: "User logged in."
     })
-
+  } catch (err) {
+    res.json(err);
+  }
 
 });
+
 
 module.exports = router;
